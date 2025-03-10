@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manipulasi Tabel Data Kawan Kampus Ginanjar</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .editable {
+            cursor: pointer;
+        }
+        .edit-mode {
+            padding: 0;
+        }
+        .edit-container {
+            display: flex;
+            flex-direction: column;
+        }
+        .edit-input {
+            padding: 7px;
+            width: 100%;
+            box-sizing: border-box;
+            border: none;
+            outline: 2px solid #4CAF50;
+        }
+        .edit-buttons {
+            display: flex;
+            margin-top: 2px;
+        }
+        .btn {
+            padding: 5px 10px;
+            border: none;
+            cursor: pointer;
+            flex-grow: 1;
+        }
+        .btn-ok {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .btn-cancel {
+            background-color: #f44336;
+            color: white;
+        }
+        .btn-action {
+            background-color: #f44336;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-add {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .invalid {
+            border: 2px solid red;
+            background-color: #ffe6e6;
+        }
+        .error-message {
+            color: red;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 60%;
+            max-width: 500px;
+            border-radius: 5px;
+        }
+        
+        .modal-title {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .form-error {
+            color: red;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .form-actions {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .btn-submit {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .btn-close {
+            background-color: #f44336;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Daftar Kawan Kampus Saya</h1>
+    <div id="tableContainer">
+        <table id="friendsTable">
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>NIM</th>
+                    <th>Nama</th>
+                    <th>Kelas</th>
+                    <th>Prodi</th>
+                    <th>Alamat</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Data will be inserted here by JavaScript -->
+            </tbody>
+        </table>
+        <button id="addButton" class="btn-add">Tambah Data</button>
+    </div>
+    
+    <!-- Add data modal -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <h2 class="modal-title">Tambah Data Kawan Baru</h2>
+            <form id="addForm">
+                <div class="form-group">
+                    <label for="nim">NIM (9 digit angka):</label>
+                    <input type="text" id="nim" name="nim" maxlength="9">
+                    <div class="form-error" id="nimError">NIM harus 9 digit angka</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="nama">Nama (huruf A-Z saja):</label>
+                    <input type="text" id="nama" name="nama">
+                    <div class="form-error" id="namaError">Nama hanya boleh berisi huruf A-Z</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="kelas">Kelas:</label>
+                    <input type="text" id="kelas" name="kelas">
+                    <div class="form-error" id="kelasError">Kelas tidak boleh kosong</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="prodi">Program Studi:</label>
+                    <input type="text" id="prodi" name="prodi">
+                    <div class="form-error" id="prodiError">Program Studi tidak boleh kosong</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="alamat">Alamat:</label>
+                    <input type="text" id="alamat" name="alamat">
+                    <div class="form-error" id="alamatError">Alamat tidak boleh kosong</div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" id="closeModal" class="btn-close">Batal</button>
+                    <button type="submit" class="btn-submit">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Initial data
+        let defaultData = [
+            { nim: "123456789", nama: "Aditia", kelas: "3A", prodi: "Sistem Informasi", alamat: "Jatinagor" },
+            { nim: "234567890", nama: "Haris", kelas: "3B", prodi: "Sistem Informasi", alamat: "Malangbong" },
+            { nim: "345678901", nama: "pebrian", kelas: "3A", prodi: "Sistem Informasi", alamat: "Cicalengka" },
+            { nim: "456789012", nama: "Nargin", kelas: "3C", prodi: "Sistem Informasi", alamat: "Majalaya" },
+            { nim: "567890123", nama: "Rafly", kelas: "3B", prodi: "Sistem Informasi", alamat: "Cileunyi" }
+        ];
+
+        // Function to load data from cookies
+        function loadDataFromCookies() {
+            const savedData = getCookie("friendsData");
+            if (savedData) {
+                try {
+                    return JSON.parse(savedData);
+                } catch (e) {
+                    console.error("Error parsing cookie data:", e);
+                }
+            }
+            return defaultData;
+        }
+
+        // Get data from cookies or use default
+        let friendsData = loadDataFromCookies();
+
+        // Function to save data to cookies
+        function saveDataToCookies() {
+            const dataString = JSON.stringify(friendsData);
+            // Check if data is within cookie size limit (4KB)
+            if (dataString.length <= 4096) {
+                setCookie("friendsData", dataString, 30); // Save for 30 days
+            } else {
+                console.warn("Data exceeds cookie size limit, saving to server instead");
+                saveDataToServer(friendsData);
+            }
+        }
+
+        // Cookie functions
+        function setCookie(name, value, days) {
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            const expires = "expires=" + date.toUTCString();
+            document.cookie = name + "=" + value + ";" + expires + ";path=/";
+        }
+
+        function getCookie(name) {
+            const cookieName = name + "=";
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                let cookie = cookies[i].trim();
+                if (cookie.indexOf(cookieName) === 0) {
+                    return cookie.substring(cookieName.length, cookie.length);
+                }
+            }
+            return "";
+        }
+
+        // Mock function to simulate saving data to a serverless API
+        function saveDataToServer(data) {
+            console.log("Saving data to server:", data);
+            // In a real implementation, this would be an API call
+            // Example:
+            // fetch('/api/saveData', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify(data)
+            // }).then(response => response.json())
+            //   .then(data => console.log('Success:', data))
+            //   .catch(error => console.error('Error:', error));
+        }
+
+        // Function to render the table
+        function renderTable() {
+            const tableBody = document.getElementById("tableBody");
+            tableBody.innerHTML = "";
+            
+            friendsData.forEach((friend, index) => {
+                const row = document.createElement("tr");
+                
+                // No column (not editable)
+                const noCell = document.createElement("td");
+                noCell.textContent = index + 1;
+                row.appendChild(noCell);
+                
+                // NIM column
+                const nimCell = document.createElement("td");
+                nimCell.textContent = friend.nim;
+                nimCell.className = "editable";
+                nimCell.dataset.field = "nim";
+                nimCell.dataset.index = index;
+                row.appendChild(nimCell);
+                
+                // Nama column
+                const namaCell = document.createElement("td");
+                namaCell.textContent = friend.nama;
+                namaCell.className = "editable";
+                namaCell.dataset.field = "nama";
+                namaCell.dataset.index = index;
+                row.appendChild(namaCell);
+                
+                // Kelas column
+                const kelasCell = document.createElement("td");
+                kelasCell.textContent = friend.kelas;
+                kelasCell.className = "editable";
+                kelasCell.dataset.field = "kelas";
+                kelasCell.dataset.index = index;
+                row.appendChild(kelasCell);
+                
+                // Prodi column
+                const prodiCell = document.createElement("td");
+                prodiCell.textContent = friend.prodi;
+                prodiCell.className = "editable";
+                prodiCell.dataset.field = "prodi";
+                prodiCell.dataset.index = index;
+                row.appendChild(prodiCell);
+                
+                // Alamat column
+                const alamatCell = document.createElement("td");
+                alamatCell.textContent = friend.alamat;
+                alamatCell.className = "editable";
+                alamatCell.dataset.field = "alamat";
+                alamatCell.dataset.index = index;
+                row.appendChild(alamatCell);
+                
+                // Action column
+                const actionCell = document.createElement("td");
+                const deleteButton = document.createElement("button");
+                deleteButton.textContent = "Delete";
+                deleteButton.className = "btn-action";
+                deleteButton.addEventListener("click", () => {
+                    deleteRow(index);
+                });
+                actionCell.appendChild(deleteButton);
+                row.appendChild(actionCell);
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Function to handle cell double-click
+        function handleCellDoubleClick(event) {
+            if (!event.target.classList.contains("editable")) return;
+            
+            const field = event.target.dataset.field;
+            const index = parseInt(event.target.dataset.index);
+            const currentValue = friendsData[index][field];
+            
+            event.target.classList.add("edit-mode");
+            
+            // Create edit container
+            const editContainer = document.createElement("div");
+            editContainer.className = "edit-container";
+            
+            // Create input element
+            const input = document.createElement("input");
+            input.type = "text";
+            input.className = "edit-input";
+            input.value = currentValue;
+            
+            // Error message element
+            const errorMsg = document.createElement("div");
+            errorMsg.className = "error-message";
+            errorMsg.style.display = "none";
+            
+            // Create buttons container
+            const buttonsContainer = document.createElement("div");
+            buttonsContainer.className = "edit-buttons";
+            
+            // Create OK button
+            const okButton = document.createElement("button");
+            okButton.textContent = "OK";
+            okButton.className = "btn btn-ok";
+            
+            // Create Cancel button
+            const cancelButton = document.createElement("button");
+            cancelButton.textContent = "Cancel";
+            cancelButton.className = "btn btn-cancel";
+            
+            // Add elements to container
+            buttonsContainer.appendChild(okButton);
+            buttonsContainer.appendChild(cancelButton);
+            editContainer.appendChild(input);
+            editContainer.appendChild(errorMsg);
+            editContainer.appendChild(buttonsContainer);
+            
+            // Clear cell and append edit container
+            event.target.innerHTML = "";
+            event.target.appendChild(editContainer);
+            
+            // Focus on input
+            input.focus();
+            
+            // Validation function
+            function validateInput(field, value) {
+                switch (field) {
+                    case "nim":
+                        // NIM must be 9 digits
+                        const nimRegex = /^\d{9}$/;
+                        if (!nimRegex.test(value)) {
+                            return "NIM harus 9 digit angka";
+                        }
+                        break;
+                    case "nama":
+                        // Name must contain only letters and spaces
+                        const nameRegex = /^[A-Za-z\s]+$/;
+                        if (!nameRegex.test(value)) {
+                            return "Nama hanya boleh berisi huruf A-Z";
+                        }
+                        break;
+                    case "kelas":
+                    case "prodi":
+                    case "alamat":
+                        if (value.trim() === "") {
+                            return "Field tidak boleh kosong";
+                        }
+                        break;
+                }
+                return null; // No error
+            }
+            
+            // OK button click handler
+            okButton.addEventListener("click", () => {
+                const newValue = input.value.trim();
+                const error = validateInput(field, newValue);
+                
+                if (error) {
+                    // Show error message
+                    errorMsg.textContent = error;
+                    errorMsg.style.display = "block";
+                    input.classList.add("invalid");
+                    return;
+                }
+                
+                // Update data
+                friendsData[index][field] = newValue;
+                
+                // Save to cookies
+                saveDataToCookies();
+                
+                // Restore cell
+                event.target.classList.remove("edit-mode");
+                event.target.textContent = newValue;
+            });
+            
+            // Cancel button click handler
+            cancelButton.addEventListener("click", () => {
+                // Restore cell without saving
+                event.target.classList.remove("edit-mode");
+                event.target.textContent = currentValue;
+            });
+            
+            // Input validation on change
+            input.addEventListener("input", () => {
+                const error = validateInput(field, input.value.trim());
+                if (error) {
+                    errorMsg.textContent = error;
+                    errorMsg.style.display = "block";
+                    input.classList.add("invalid");
+                } else {
+                    errorMsg.style.display = "none";
+                    input.classList.remove("invalid");
+                }
+            });
+        }
+
+        // Function to delete a row
+        function deleteRow(index) {
+            if (confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+                friendsData.splice(index, 1);
+                saveDataToCookies();
+                renderTable();
+            }
+        }
+
+        // Modal functions
+        const modal = document.getElementById("addModal");
+        const addButton = document.getElementById("addButton");
+        const closeButton = document.getElementById("closeModal");
+        const addForm = document.getElementById("addForm");
+
+        // Show modal
+        addButton.addEventListener("click", () => {
+            // Reset form
+            addForm.reset();
+            resetFormErrors();
+            modal.style.display = "block";
+        });
+
+        // Close modal
+        closeButton.addEventListener("click", () => {
+            modal.style.display = "none";
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener("click", (event) => {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        });
+
+        // Reset form errors
+        function resetFormErrors() {
+            const errorElements = document.querySelectorAll(".form-error");
+            errorElements.forEach(element => {
+                element.style.display = "none";
+            });
+            
+            const inputElements = addForm.querySelectorAll("input");
+            inputElements.forEach(input => {
+                input.classList.remove("invalid");
+            });
+        }
+
+        // Validate form input
+        function validateFormInput(field, value) {
+            switch (field) {
+                case "nim":
+                    const nimRegex = /^\d{9}$/;
+                    return nimRegex.test(value);
+                case "nama":
+                    const nameRegex = /^[A-Za-z\s]+$/;
+                    return nameRegex.test(value);
+                case "kelas":
+                case "prodi":
+                case "alamat":
+                    return value.trim() !== "";
+            }
+            return true;
+        }
+
+        // Add new row from form
+        addForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            
+            const formData = {
+                nim: document.getElementById("nim").value,
+                nama: document.getElementById("nama").value,
+                kelas: document.getElementById("kelas").value,
+                prodi: document.getElementById("prodi").value,
+                alamat: document.getElementById("alamat").value
+            };
+            
+            let isValid = true;
+            
+            // Validate each field
+            Object.keys(formData).forEach(field => {
+                const input = document.getElementById(field);
+                const errorElement = document.getElementById(`${field}Error`);
+                
+                if (!validateFormInput(field, formData[field])) {
+                    isValid = false;
+                    input.classList.add("invalid");
+                    errorElement.style.display = "block";
+                } else {
+                    input.classList.remove("invalid");
+                    errorElement.style.display = "none";
+                }
+            });
+            
+            if (isValid) {
+                // Add new row
+                friendsData.push(formData);
+                saveDataToCookies();
+                renderTable();
+                
+                // Close modal
+                modal.style.display = "none";
+            }
+        });
+
+        // Add input validation events
+        const formInputs = addForm.querySelectorAll("input");
+        formInputs.forEach(input => {
+            input.addEventListener("input", () => {
+                const field = input.id;
+                const errorElement = document.getElementById(`${field}Error`);
+                
+                if (!validateFormInput(field, input.value)) {
+                    input.classList.add("invalid");
+                    errorElement.style.display = "block";
+                } else {
+                    input.classList.remove("invalid");
+                    errorElement.style.display = "none";
+                }
+            });
+        });
+
+        // Add event listeners
+        document.getElementById("tableBody").addEventListener("dblclick", handleCellDoubleClick);
+
+        // Initial render
+        renderTable();
+    </script>
+</body>
+</html>
